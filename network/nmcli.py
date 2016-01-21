@@ -27,7 +27,7 @@ short_description: Manage Networking
 requirements: [ nmcli, dbus ]
 version_added: "2.0"
 description:
-    - Manage the network devices. Create, modify, and manage, ethernet, teams, bonds, vlans etc.
+    - Manage the network devices. Create, modify, and manage, ethernet, infiniband, teams, bonds, vlans etc.
 options:
     state:
         required: True
@@ -55,7 +55,7 @@ options:
             - The ifname argument is mandatory for all connection types except bond, team, bridge and vlan.
     type:
         required: False
-        choices: [ ethernet, team, team-slave, bond, bond-slave, bridge, vlan ]
+        choices: [ ethernet, infiniband, team, team-slave, bond, bond-slave, bridge, vlan ]
         description:
             - This is the type of device or network connection that you wish to create.
     mode:
@@ -208,6 +208,21 @@ options:
         default: None
         description:
             - This is only used with VLAN - VLAN egress priority mapping
+    parent:
+        required: False
+        default: None
+        description:
+            - This is only used with Infiniband - parent interface for p-key interfaces
+    p_key:
+        required: False
+        default: None
+        description:
+            - This is only used with Infiniband - p-key for p-key interfaces
+    transport_mode:
+        required: False
+        default: None
+        description:
+            - This is only used with Infiniband - transport_mode is either 'datagram' or 'connected'
 
 '''
 
@@ -359,6 +374,12 @@ tenant_ip: "192.168.200.21/23"
 # To make a profile usable for all compatible Ethernet interfaces, issue a command as follows
 - nmcli: ctype=ethernet name=my-eth1 ifname="*" state=present
 
+# To add an Infiniband connection with static IP configuration, issue a command as follows
+- nmcli: conn_name=mlx4-ib0 ifname=mlx4_ib0 transport_mode=connected mtu=65520 type=infiniband ip4=192.168.100.100/24 gw4=192.168.100.1 state=present
+
+# To add an Infiniband p-key child interface
+- nmcli: conn_name=mlx4-ib0.8002 ifname=mlx4_ib0.8002 parent=mlx4_ib0 p_key=0x8002 type=infiniband state=present
+
 # To change the property of a setting e.g. MTU, issue a command as follows:
 - nmcli: conn_name=my-eth1 mtu=9000 state=present
 
@@ -465,6 +486,9 @@ class Nmcli(object):
         self.flags=module.params['flags']
         self.ingress=module.params['ingress']
         self.egress=module.params['egress']
+        self.parent=module.params['parent']
+        self.p_key=module.params['p_key']
+        self.transport_mode=module.params['transport_mode']
 
     def execute_command(self, cmd, use_unsafe_shell=False, data=None):
         return self.module.run_command(cmd, use_unsafe_shell=use_unsafe_shell, data=data)
@@ -857,6 +881,96 @@ class Nmcli(object):
             cmd.append(self.autoconnect)
         return cmd
 
+    def create_connection_infiniband(self):
+        cmd=[self.module.get_bin_path('nmcli', True)]
+        # format for creating infiniband interface
+        # To add an Infiniband connection with static IP configuration, issue a command as follows
+        # - nmcli: conn_name=my-ib0 ifname=ib0 type=infiniband ip4=192.168.100.100/24 gw4=192.168.100.1 state=present
+        # nmcli con add type infiniband con-name my-ib0 ifname ib0 ip4 192.168.100.100/24 gw4 192.168.100.1
+        cmd.append('con')
+        cmd.append('add')
+        cmd.append('type')
+        cmd.append('infiniband')
+        cmd.append('con-name')
+        if self.conn_name is not None:
+            cmd.append(self.conn_name)
+        elif self.ifname is not None:
+            cmd.append(self.ifname)
+        cmd.append('ifname')
+        if self.ifname is not None:
+            cmd.append(self.ifname)
+        elif self.conn_name is not None:
+            cmd.append(self.conn_name)
+        if self.autoconnect is not None:
+            cmd.append('autoconnect')
+            cmd.append(self.autoconnect)
+        if self.parent is not None:
+            cmd.append('parent')
+            cmd.append(self.parent)
+        if self.p_key is not None:
+            cmd.append('p-key')
+            cmd.append(self.p_key)
+        if self.transport_mode is not None:
+            cmd.append('transport-mode')
+            cmd.append(self.transport_mode)
+        if self.ip4 is not None:
+            cmd.append('ip4')
+            cmd.append(self.ip4)
+        if self.gw4 is not None:
+            cmd.append('gw4')
+            cmd.append(self.gw4)
+        if self.ip6 is not None:
+            cmd.append('ip6')
+            cmd.append(self.ip6)
+        if self.gw6 is not None:
+            cmd.append('gw6')
+            cmd.append(self.gw6)
+        return cmd
+
+    def modify_connection_infiniband(self):
+        cmd=[self.module.get_bin_path('nmcli', True)]
+        # format for  modifying infiniband interface
+        # To modify an Infiniband connection with static IP configuration, issue a command as follows
+        # - nmcli: conn_name=my-ib0 ifname=ib0 type=infiniband ip4=192.168.100.100/24 gw4=192.168.100.1 state=present
+        # nmcli con mod my-ib0 ip4 192.168.100.100/24 gw4 192.168.100.1
+        cmd.append('con')
+        cmd.append('mod')
+        cmd.append(self.conn_name)
+        if self.ip4 is not None:
+            cmd.append('ipv4.address')
+            cmd.append(self.ip4)
+        if self.gw4 is not None:
+            cmd.append('ipv4.gateway')
+            cmd.append(self.gw4)
+        if self.dns4 is not None:
+            cmd.append('ipv4.dns')
+            cmd.append(self.dns4)
+        if self.ip6 is not None:
+            cmd.append('ipv6.address')
+            cmd.append(self.ip6)
+        if self.gw6 is not None:
+            cmd.append('ipv6.gateway')
+            cmd.append(self.gw4)
+        if self.dns6 is not None:
+            cmd.append('ipv6.dns')
+            cmd.append(self.dns6)
+        if self.mtu is not None:
+            cmd.append('infiniband.mtu')
+            cmd.append(self.mtu)
+        if self.autoconnect is not None:
+            cmd.append('autoconnect')
+            cmd.append(self.autoconnect)
+        if self.parent is not None:
+            cmd.append('infiniband.parent')
+            cmd.append(self.parent)
+        if self.p_key is not None:
+            cmd.append('infiniband.p-key')
+            cmd.append(self.p_key)
+        if self.transport_mode is not None:
+            cmd.append('infiniband.transport-mode')
+            cmd.append(self.transport_mode)
+        return cmd
+
     def create_connection_bridge(self):
         cmd=[self.module.get_bin_path('nmcli', True)]
         # format for creating bridge interface
@@ -926,6 +1040,16 @@ class Nmcli(object):
             else:
                 cmd=self.create_connection_ethernet()
                 return self.execute_command(cmd)
+        elif self.type=='infiniband':
+            if (self.mtu is not None) or (self.dns4 is not None) or (self.dns6 is not None):
+                cmd=self.create_connection_infiniband()
+                self.execute_command(cmd)
+                cmd=self.modify_connection_infiniband()
+                self.execute_command(cmd)
+                return self.up_connection()
+            else:
+                cmd=self.create_connection_infiniband()
+                return self.execute_command(cmd)
         elif self.type=='bridge':
             cmd=self.create_connection_bridge()
         elif self.type=='vlan':
@@ -952,6 +1076,8 @@ class Nmcli(object):
             cmd=self.modify_connection_bond_slave()
         elif self.type=='ethernet':
             cmd=self.modify_connection_ethernet()
+        elif self.type=='infiniband':
+            cmd=self.modify_connection_infiniband()
         elif self.type=='bridge':
             cmd=self.modify_connection_bridge()
         elif self.type=='vlan':
@@ -968,7 +1094,7 @@ def main():
             conn_name=dict(required=True, type='str'),
             master=dict(required=False, default=None, type='str'),
             ifname=dict(required=False, default=None, type='str'),
-            type=dict(required=False, default=None, choices=['ethernet', 'team', 'team-slave', 'bond', 'bond-slave', 'bridge', 'vlan'], type='str'),
+            type=dict(required=False, default=None, choices=['ethernet', 'infiniband', 'team', 'team-slave', 'bond', 'bond-slave', 'bridge', 'vlan'], type='str'),
             ip4=dict(required=False, default=None, type='str'),
             gw4=dict(required=False, default=None, type='str'),
             dns4=dict(required=False, default=None, type='str'),
@@ -999,6 +1125,10 @@ def main():
             flags=dict(required=False, default=None, type='str'),
             ingress=dict(required=False, default=None, type='str'),
             egress=dict(required=False, default=None, type='str'),
+            # Infiniband specific vars
+            parent=dict(required=False, default=None, type='str'),
+            p_key=dict(required=False, default=None, type='str'),
+            transport_mode=dict(required=False, default=None, choices=["datagram", "connected"], type='str'),
         ),
         supports_check_mode=True
     )
