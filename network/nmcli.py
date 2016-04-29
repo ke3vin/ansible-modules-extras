@@ -213,19 +213,19 @@ options:
         default: None
         description:
             - This is only used with Infiniband - parent interface for p-key interfaces
-        version_added: "2.0"
+        version_added: "2.2"
     p_key:
         required: False
         default: None
         description:
             - This is only used with Infiniband - p-key for p-key interfaces
-        version_added: "2.0"
+        version_added: "2.2"
     transport_mode:
         required: False
         default: None
         description:
             - This is only used with Infiniband - transport_mode is either 'datagram' or 'connected'
-        version_added: "2.0"
+        version_added: "2.2"
 
 '''
 
