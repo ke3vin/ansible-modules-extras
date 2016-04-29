@@ -20,7 +20,7 @@ module: proxmox
 short_description: management of instances in Proxmox VE cluster
 description:
   - allows you to create/delete/stop instances in Proxmox VE cluster
-  - Starting in Ansible 2.1, it automatically detects conainerization type (lxc for PVE 4, openvz for older)
+  - Starting in Ansible 2.1, it automatically detects containerization type (lxc for PVE 4, openvz for older)
 version_added: "2.0"
 options:
   api_host:
@@ -213,6 +213,9 @@ def create_instance(module, proxmox, vmid, node, disk, storage, cpus, memory, sw
   if VZ_TYPE =='lxc':
       kwargs['cpulimit']=cpus
       kwargs['rootfs']=disk
+      if 'netif' in kwargs:
+        kwargs.update(kwargs['netif'])
+        del kwargs['netif']
   else:
       kwargs['cpus']=cpus
       kwargs['disk']=disk
@@ -287,7 +290,7 @@ def main():
       password = dict(no_log=True),
       hostname = dict(),
       ostemplate = dict(),
-      disk = dict(type='int', default=3),
+      disk = dict(type='str', default='3'),
       cpus = dict(type='int', default=1),
       memory = dict(type='int', default=512),
       swap = dict(type='int', default=0),

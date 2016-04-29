@@ -301,6 +301,7 @@ tenant_ip: "192.168.200.21/23"
 - name: install needed network manager libs
   yum: name={{ item }} state=installed
   with_items:
+    - NetworkManager-glib
     - libnm-qt-devel.x86_64
     - nm-connection-editor.x86_64
     - libsemanage-python
@@ -384,7 +385,7 @@ tenant_ip: "192.168.200.21/23"
 - nmcli: conn_name=mlx4-ib0.8002 ifname=mlx4_ib0.8002 parent=mlx4_ib0 p_key=0x8002 type=infiniband state=present
 
 # To change the property of a setting e.g. MTU, issue a command as follows:
-- nmcli: conn_name=my-eth1 mtu=9000 state=present
+- nmcli: conn_name=my-eth1 mtu=9000 type=ethernet state=present
 
     Exit Status's:
         - nmcli exits with status 0 if it succeeds, a value greater than 0 is
