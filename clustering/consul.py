@@ -95,10 +95,12 @@ options:
         required: false
     service_address:
         description:
-          - the address on which the service is serving required for
-            registration of a service
+          - the address to advertise that the service will be listening on.
+            This value will be passed as the I(Address) parameter to Consul's
+            U(/v1/agent/service/register) API method, so refer to the Consul API
+            documentation for further details.
         required: false
-        default: localhost
+        default: None
         version_added: "2.1"
     tags:
         description:
@@ -180,16 +182,16 @@ EXAMPLES = '''
 
   - name: register nginx with an http check
     consul:
-      name: nginx
+      service_name: nginx
       service_port: 80
       interval: 60s
       http: /status
 
-  - name: register nginx with address
+  - name: register external service nginx available at 10.1.5.23
     consul:
       service_name: nginx
       service_port: 80
-      service_address: 127.0.0.1
+      service_address: 10.1.5.23
 
   - name: register nginx with some service tags
     consul:
@@ -332,7 +334,7 @@ def get_consul_api(module, token=None):
     return consul.Consul(host=module.params.get('host'),
                          port=module.params.get('port'),
                          scheme=module.params.get('scheme'),
-                         validate_certs=module.params.get('validate_certs'),
+                         verify=module.params.get('validate_certs'),
                          token=module.params.get('token'))
 
 
@@ -542,7 +544,7 @@ def main():
             script=dict(required=False),
             service_id=dict(required=False),
             service_name=dict(required=False),
-            service_address=dict(required=False, type='str', default='localhost'),
+            service_address=dict(required=False, type='str', default=None),
             service_port=dict(required=False, type='int'),
             state=dict(default='present', choices=['present', 'absent']),
             interval=dict(required=False, type='str'),

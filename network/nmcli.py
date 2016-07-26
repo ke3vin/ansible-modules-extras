@@ -652,7 +652,7 @@ class Nmcli(object):
             cmd.append(self.ip6)
         if self.gw6 is not None:
             cmd.append('ipv6.gateway')
-            cmd.append(self.gw4)
+            cmd.append(self.gw6)
         if self.dns6 is not None:
             cmd.append('ipv6.dns')
             cmd.append(self.dns6)
@@ -772,7 +772,7 @@ class Nmcli(object):
             cmd.append(self.ip6)
         if self.gw6 is not None:
             cmd.append('ipv6.gateway')
-            cmd.append(self.gw4)
+            cmd.append(self.gw6)
         if self.dns6 is not None:
             cmd.append('ipv6.dns')
             cmd.append(self.dns6)
@@ -873,7 +873,7 @@ class Nmcli(object):
             cmd.append(self.ip6)
         if self.gw6 is not None:
             cmd.append('ipv6.gateway')
-            cmd.append(self.gw4)
+            cmd.append(self.gw6)
         if self.dns6 is not None:
             cmd.append('ipv6.dns')
             cmd.append(self.dns6)
